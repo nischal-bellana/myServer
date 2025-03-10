@@ -3,6 +3,7 @@ package com.server.myServer;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -20,11 +21,9 @@ import java.awt.event.*;
 public class MyServer {
     @SuppressWarnings("unchecked")
 	public static void main( String[] args ) throws InterruptedException, IOException {
-    	resetData();
     	JSONArray users = readData();
     	DatagramSocket serverSocket = new DatagramSocket(1234);
-    	myFrame frame = new myFrame(users);
-    	
+    	System.out.println("Version 1.0");
     	byte[] content = new byte[65535];
     	
     	InetAddress ip = null;
@@ -68,16 +67,18 @@ public class MyServer {
     		System.out.println("Receiving ...");
     		serverSocket.receive(packet);
     		
+    		System.out.println(packet.getAddress().toString()+" "+packet.getPort());
+    		
     		String rec = data(content);
     		
     		if(rec.charAt(0)=='c') {
-    			frame.f.dispose();
     			break;
     		}
     		
-    		processCommand(rec);
     		users = readData();
-    		frame.refresh(users);
+    		processCommand(rec, users);
+    		System.out.println("After modify:");
+    		readData();
     		
     		StringBuilder str = new StringBuilder("200\n");
 			str.append(users.toJSONString());
@@ -108,7 +109,7 @@ public class MyServer {
             i++; 
         } 
         return ret.toString(); 
-    } 
+    }
     
     public static int Number(String s) {
     	
@@ -126,10 +127,8 @@ public class MyServer {
     }
     
     @SuppressWarnings("unchecked")
-	public static void processCommand(String rec) {
+	public static void processCommand(String rec, JSONArray users) {
     	JSONObject usersObject = new JSONObject();
-    	
-        JSONArray users = readData();
         
         char c = rec.charAt(0);
         
@@ -152,7 +151,7 @@ public class MyServer {
         
         usersObject.put("users", users);
         
-        try(FileWriter file = new FileWriter("target/jsonfiles/users.json")){
+        try(FileWriter file = new FileWriter("users.json")){
         	file.write(usersObject.toJSONString());
         }
         catch(IOException e){
@@ -180,7 +179,7 @@ public class MyServer {
         
         usersObject.put("users", users);
         
-        try(FileWriter file = new FileWriter("target/jsonfiles/users.json")){
+        try(FileWriter file = new FileWriter("users.json")){
         	file.write(usersObject.toJSONString());
         }
         catch(IOException e){
@@ -193,11 +192,13 @@ public class MyServer {
     	
     	JSONObject usersObject = null; 
     	
-    	try(FileReader file = new FileReader("target/jsonfiles/users.json")){
+    	try(FileReader file = new FileReader("users.json")){
     		usersObject = (JSONObject) jsonParser.parse(file);
     	}catch (Exception e) {
 			// TODO: handle exception
 		}
+    	
+    	System.out.println("Data:");
     	
     	if(usersObject != null) {
     		JSONArray users = (JSONArray) usersObject.get("users");
@@ -211,54 +212,4 @@ public class MyServer {
     	
     }
     
-}
-
-class myFrame {
-	Frame f;
-	Label heading;
-	
-	public myFrame() {
-		f = new Frame();
-    	f.setBounds(500,200,500, 500);
-    	f.setTitle("Users");
-    	f.setLayout(null);
-    	f.setVisible(true);
-    	f.addWindowListener (new WindowAdapter() {    
-            public void windowClosing (WindowEvent e) {   
-                f.dispose();
-                System.exit(0);
-            }    
-        });  
-  	
-	}
-	
-	public myFrame(JSONArray users) {
-		this();
-		heading = new Label("UserName: ");
-		heading.setBounds(10, 50, 300, 20);
-		f.add(heading);
-		
-		for(int i=0; i< users.size(); i++) {
-			JSONObject user = (JSONObject)users.get(i);
-			Label label = new Label(user.get("name").toString());
-			label.setBounds(10,80+30*i,300,20);
-			f.add(label);
-		}
-	}
-	
-	public void refresh(JSONArray users) throws InterruptedException {
-		f.removeAll();
-		heading = new Label("UserName: ");
-		heading.setBounds(10, 50, 300, 20);
-		f.add(heading);
-		
-		for(int i=0; i< users.size(); i++) {
-			JSONObject user = (JSONObject)users.get(i);
-			Label label = new Label(user.get("name").toString());
-			label.setBounds(10,80+30*i,300,20);
-			f.add(label);
-		}
-		
-	}
-	
 }
